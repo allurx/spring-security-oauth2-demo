@@ -17,9 +17,10 @@
 package red.zyc.spring.security.oauth2.client.security;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import red.zyc.spring.security.oauth2.client.util.JacksonUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -32,11 +33,18 @@ import java.nio.charset.StandardCharsets;
  */
 public class Oauth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
+    private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
+
+    public Oauth2LoginSuccessHandler(OAuth2AuthorizedClientService oAuth2AuthorizedClientService) {
+        this.oAuth2AuthorizedClientService = oAuth2AuthorizedClientService;
+    }
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2AuthenticationToken oAuth2AuthenticationToken = (OAuth2AuthenticationToken) authentication;
-        response.setContentType("application/json;charset=utf-8");
+        OAuth2AuthorizedClient oAuth2AuthorizedClient = oAuth2AuthorizedClientService.loadAuthorizedClient(oAuth2AuthenticationToken.getAuthorizedClientRegistrationId(), oAuth2AuthenticationToken.getName());
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write(JacksonUtil.toJsonString(oAuth2AuthenticationToken.getPrincipal()));
+        response.getWriter().write(oAuth2AuthenticationToken.getName());
+        //response.getWriter().write(oAuth2AuthorizedClient.getAccessToken().getTokenValue());
     }
 }

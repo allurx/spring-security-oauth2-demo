@@ -4,10 +4,21 @@
     <meta charset="UTF-8">
     <title>Document</title>
     <script type="text/javascript" src="./js/jquery-3.1.1.min.js"></script>
+    <script type="text/javascript">
+        $.ajax({
+            type: 'get',
+            url: "/api/client",
+            headers:{
+                Authorization:sessionStorage.getItem("accessToken")
+            }
+        }).done(function (response) {
+            console.log(response);
+            $("#user").html(response)
+        })
+    </script>
 </head>
 <body>
-<div class="container">
-    <a href="/api/oauth2/authorization/github">使用GitHub登录</a>
+<div id="user">
 </div>
 </body>
 </html>

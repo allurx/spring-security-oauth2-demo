@@ -20,7 +20,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import red.zyc.spring.security.oauth2.client.security.Oauth2AuthorizedClientFilter;
 import red.zyc.spring.security.oauth2.client.security.Oauth2LoginSuccessHandler;
 
 /**
@@ -29,14 +32,26 @@ import red.zyc.spring.security.oauth2.client.security.Oauth2LoginSuccessHandler;
 @Configuration
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
+    private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
+
+    public WebSecurityConfig(OAuth2AuthorizedClientService oAuth2AuthorizedClientService) {
+        super(true);
+        this.oAuth2AuthorizedClientService = oAuth2AuthorizedClientService;
+    }
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 
         http
                 .authorizeRequests().anyRequest().authenticated().and()
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-                .oauth2Login(httpSecurityOauth2LoginConfigurer -> httpSecurityOauth2LoginConfigurer.successHandler(new Oauth2LoginSuccessHandler()))
-                .csrf().disable();
+                .addFilterBefore(new Oauth2AuthorizedClientFilter(oAuth2AuthorizedClientService), OAuth2AuthorizationRequestRedirectFilter.class)
+                .oauth2Login(httpSecurityOauth2LoginConfigurer ->
+                        httpSecurityOauth2LoginConfigurer.successHandler(new Oauth2LoginSuccessHandler(oAuth2AuthorizedClientService))
+                                .loginProcessingUrl("/api/login/oauth2/code/*")
+                                .authorizationEndpoint(authorizationEndpointConfig -> authorizationEndpointConfig.baseUri("/api/oauth2/authorization")));
 
     }
+
+
 }
