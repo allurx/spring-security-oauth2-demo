@@ -3,4 +3,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${mockwebserver.url}/.well-known/jwks.json
+          public-key-location: classpath:key.public
+          jws-algorithm: RS512
+logging:
+  level:
+    org.springframework.security: debug
