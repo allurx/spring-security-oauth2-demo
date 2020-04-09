@@ -17,14 +17,15 @@
 package red.zyc.spring.security.oauth2.client.config;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import red.zyc.spring.security.oauth2.client.security.CustomizedAccessDeniedHandler;
+import red.zyc.spring.security.oauth2.client.security.CustomizedAuthenticationEntryPoint;
+import red.zyc.spring.security.oauth2.client.security.Oauth2AuthenticationFailureHandler;
+import red.zyc.spring.security.oauth2.client.security.Oauth2AuthenticationSuccessHandler;
 import red.zyc.spring.security.oauth2.client.security.Oauth2AuthorizedClientFilter;
-import red.zyc.spring.security.oauth2.client.security.Oauth2LoginSuccessHandler;
 
 /**
  * @author zyc
@@ -44,12 +45,22 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
         http
                 .authorizeRequests().anyRequest().authenticated().and()
-                .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(new Oauth2AuthorizedClientFilter(oAuth2AuthorizedClientService), OAuth2AuthorizationRequestRedirectFilter.class)
-                .oauth2Login(httpSecurityOauth2LoginConfigurer ->
-                        httpSecurityOauth2LoginConfigurer.successHandler(new Oauth2LoginSuccessHandler(oAuth2AuthorizedClientService))
-                                .loginProcessingUrl("/api/login/oauth2/code/*")
-                                .authorizationEndpoint(authorizationEndpointConfig -> authorizationEndpointConfig.baseUri("/api/oauth2/authorization")));
+                .oauth2Login(oauth2LoginConfigurer -> oauth2LoginConfigurer
+                        // 认证成功后的处理器
+                        .successHandler(new Oauth2AuthenticationSuccessHandler(oAuth2AuthorizedClientService))
+                        // 认证失败后的处理器
+                        .failureHandler(new Oauth2AuthenticationFailureHandler())
+                        // 登录请求url
+                        .loginProcessingUrl("/api/login/oauth2/code/*")
+                        // 配置授权服务器端点信息
+                        .authorizationEndpoint(authorizationEndpointConfig -> authorizationEndpointConfig
+                                // 授权端点的前缀基础url
+                                .baseUri("/api/oauth2/authorization")))
+                // 配置认证端点和未授权的请求处理器
+                .exceptionHandling(exceptionHandlingConfigurer -> exceptionHandlingConfigurer
+                        .authenticationEntryPoint(new CustomizedAuthenticationEntryPoint())
+                        .accessDeniedHandler(new CustomizedAccessDeniedHandler()));
 
     }
 

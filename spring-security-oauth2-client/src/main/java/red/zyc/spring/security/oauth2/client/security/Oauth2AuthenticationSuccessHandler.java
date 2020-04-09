@@ -31,11 +31,11 @@ import java.nio.charset.StandardCharsets;
 /**
  * @author zyc
  */
-public class Oauth2LoginSuccessHandler implements AuthenticationSuccessHandler {
+public class Oauth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
     private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
 
-    public Oauth2LoginSuccessHandler(OAuth2AuthorizedClientService oAuth2AuthorizedClientService) {
+    public Oauth2AuthenticationSuccessHandler(OAuth2AuthorizedClientService oAuth2AuthorizedClientService) {
         this.oAuth2AuthorizedClientService = oAuth2AuthorizedClientService;
     }
 
