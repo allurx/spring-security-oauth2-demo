@@ -16,16 +16,35 @@
 
 package red.zyc.spring.security.oauth2.client.config;
 
+import lombok.SneakyThrows;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpInputMessage;
+import org.springframework.http.HttpOutputMessage;
+import org.springframework.http.MediaType;
+import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
+import org.springframework.security.oauth2.client.authentication.OAuth2LoginAuthenticationProvider;
+import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationCodeTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
+import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
+import org.springframework.security.web.context.SecurityContextPersistenceFilter;
+import org.springframework.util.StreamUtils;
+import org.springframework.web.client.RestTemplate;
 import red.zyc.spring.security.oauth2.client.security.CustomizedAccessDeniedHandler;
 import red.zyc.spring.security.oauth2.client.security.CustomizedAuthenticationEntryPoint;
 import red.zyc.spring.security.oauth2.client.security.Oauth2AuthenticationFailureHandler;
 import red.zyc.spring.security.oauth2.client.security.Oauth2AuthenticationSuccessHandler;
-import red.zyc.spring.security.oauth2.client.security.Oauth2AuthorizedClientFilter;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author zyc
@@ -33,11 +52,8 @@ import red.zyc.spring.security.oauth2.client.security.Oauth2AuthorizedClientFilt
 @Configuration
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
-
     public WebSecurityConfig(OAuth2AuthorizedClientService oAuth2AuthorizedClientService) {
         super(true);
-        this.oAuth2AuthorizedClientService = oAuth2AuthorizedClientService;
     }
 
     @Override
@@ -45,10 +61,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
         http
                 .authorizeRequests().anyRequest().authenticated().and()
-                .addFilterBefore(new Oauth2AuthorizedClientFilter(oAuth2AuthorizedClientService), OAuth2AuthorizationRequestRedirectFilter.class)
+                // 通过httpSession保存认证信息
+                .addFilter(new SecurityContextPersistenceFilter())
                 .oauth2Login(oauth2LoginConfigurer -> oauth2LoginConfigurer
                         // 认证成功后的处理器
-                        .successHandler(new Oauth2AuthenticationSuccessHandler(oAuth2AuthorizedClientService))
+                        .successHandler(new Oauth2AuthenticationSuccessHandler())
                         // 认证失败后的处理器
                         .failureHandler(new Oauth2AuthenticationFailureHandler())
                         // 登录请求url
@@ -56,12 +73,52 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                         // 配置授权服务器端点信息
                         .authorizationEndpoint(authorizationEndpointConfig -> authorizationEndpointConfig
                                 // 授权端点的前缀基础url
-                                .baseUri("/api/oauth2/authorization")))
+                                .baseUri("/api/oauth2/authorization"))
+                        .tokenEndpoint(tokenEndpointConfig -> tokenEndpointConfig.accessTokenResponseClient(oAuth2AccessTokenResponseClient()))
+                )
+                // 配置匿名用户过滤器
+                .anonymous().and()
                 // 配置认证端点和未授权的请求处理器
                 .exceptionHandling(exceptionHandlingConfigurer -> exceptionHandlingConfigurer
                         .authenticationEntryPoint(new CustomizedAuthenticationEntryPoint())
                         .accessDeniedHandler(new CustomizedAccessDeniedHandler()));
 
+    }
+
+    private OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> oAuth2AccessTokenResponseClient() {
+        DefaultAuthorizationCodeTokenResponseClient client = new DefaultAuthorizationCodeTokenResponseClient();
+        RestTemplate restTemplate = new RestTemplate(Arrays.asList(
+                new FormHttpMessageConverter(), new OAuth2AccessTokenResponseHttpMessageConverter(), new QqoAuth2AccessTokenResponseHttpMessageConverter(MediaType.TEXT_HTML)));
+        restTemplate.setErrorHandler(new OAuth2ErrorResponseErrorHandler());
+        client.setRestOperations(restTemplate);
+        return client;
+    }
+
+    /**
+     * qq获取access_token返回的结果是类似get请求的字符串，所以必须自己定义解析响应结果
+     *
+     * @see OAuth2AccessTokenResponseHttpMessageConverter#readInternal(java.lang.Class, org.springframework.http.HttpInputMessage)
+     * @see OAuth2LoginAuthenticationProvider#authenticate(org.springframework.security.core.Authentication)
+     */
+    private static class QqoAuth2AccessTokenResponseHttpMessageConverter extends OAuth2AccessTokenResponseHttpMessageConverter {
+
+        public QqoAuth2AccessTokenResponseHttpMessageConverter(MediaType... mediaType) {
+            setSupportedMediaTypes(Arrays.asList(mediaType));
+        }
+
+        @SneakyThrows
+        @Override
+        protected OAuth2AccessTokenResponse readInternal(Class<? extends OAuth2AccessTokenResponse> clazz, HttpInputMessage inputMessage) {
+            String response = StreamUtils.copyToString(inputMessage.getBody(), StandardCharsets.UTF_8);
+            Map<String, String> tokenResponseParameters = Arrays.stream(response.split("&")).collect(Collectors.toMap(s -> s.split("=")[0], s -> s.split("=")[1]));
+            tokenResponseParameters.put(OAuth2ParameterNames.TOKEN_TYPE, "bearer");
+            return this.tokenResponseConverter.convert(tokenResponseParameters);
+        }
+
+        @Override
+        protected void writeInternal(OAuth2AccessTokenResponse tokenResponse, HttpOutputMessage outputMessage) {
+            throw new UnsupportedOperationException();
+        }
     }
 
 

@@ -10,16 +10,19 @@ spring:
             tokenUri: https://graph.qq.com/oauth2.0/token
             userInfoUri: https://graph.qq.com/oauth2.0/me
             userInfoAuthenticationMethod: get
+            userNameAttribute: nickname
         registration:
           github:
-            clientId: clientId
-            clientSecret: clientSecret
+            clientId: 27fdbd2cd444e3a6acf9
+            clientSecret: bf6c26ae4fc57f9504b30593d8521c95b31ba28c
             redirectUri: http://localhost/api/login/oauth2/code/github
           qq:
-            clientId: clientId
-            clientSecret: clientSecret
+            clientId: 101868508
+            clientSecret: dd6f2a4d008f1cc17ae27acf00f94336
             redirectUri: https://www.zyc.red/api/login/oauth2/code/qq
             authorizationGrantType: authorization_code
+            clientAuthenticationMethod: post
+
 logging:
   level:
     org.springframework.security: debug
