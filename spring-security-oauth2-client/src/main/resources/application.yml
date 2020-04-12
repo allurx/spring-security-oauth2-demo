@@ -13,12 +13,12 @@ spring:
             userNameAttribute: nickname
         registration:
           github:
-            clientId: 27fdbd2cd444e3a6acf9
-            clientSecret: bf6c26ae4fc57f9504b30593d8521c95b31ba28c
+            clientId: clientId
+            clientSecret: clientSecret
             redirectUri: http://localhost/api/login/oauth2/code/github
           qq:
-            clientId: 101868508
-            clientSecret: dd6f2a4d008f1cc17ae27acf00f94336
+            clientId: clientId
+            clientSecret: clientSecret
             redirectUri: https://www.zyc.red/api/login/oauth2/code/qq
             authorizationGrantType: authorization_code
             clientAuthenticationMethod: post
