@@ -24,7 +24,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2LoginAuthenticationProvider;
 import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationCodeTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
@@ -52,7 +51,7 @@ import java.util.stream.Collectors;
 @Configuration
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    public WebSecurityConfig(OAuth2AuthorizedClientService oAuth2AuthorizedClientService) {
+    public WebSecurityConfig() {
         super(true);
     }
 
@@ -64,16 +63,21 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 // 通过httpSession保存认证信息
                 .addFilter(new SecurityContextPersistenceFilter())
                 .oauth2Login(oauth2LoginConfigurer -> oauth2LoginConfigurer
+
                         // 认证成功后的处理器
                         .successHandler(new Oauth2AuthenticationSuccessHandler())
+
                         // 认证失败后的处理器
                         .failureHandler(new Oauth2AuthenticationFailureHandler())
+
                         // 登录请求url
                         .loginProcessingUrl("/api/login/oauth2/code/*")
+
                         // 配置授权服务器端点信息
                         .authorizationEndpoint(authorizationEndpointConfig -> authorizationEndpointConfig
                                 // 授权端点的前缀基础url
                                 .baseUri("/api/oauth2/authorization"))
+                        // 配置获取access_token的客户端
                         .tokenEndpoint(tokenEndpointConfig -> tokenEndpointConfig.accessTokenResponseClient(oAuth2AccessTokenResponseClient()))
                 )
                 // 配置匿名用户过滤器
@@ -85,6 +89,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     }
 
+    /**
+     * qq获取access_token返回的结果是类似get请求参数的字符串，这里需要吐槽一下实在是太奇葩了，而spring-security默认远程获取
+     * access_token的客户端是DefaultAuthorizationCodeTokenResponseClient，无法解析qq奇葩的响应，所以我们需要
+     * 自定义{@link QqoAuth2AccessTokenResponseHttpMessageConverter}注入到这个client中来解析qq的响应消息
+     *
+     * @return {@link DefaultAuthorizationCodeTokenResponseClient} 同来虎丘access_token的客户端
+     */
     private OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> oAuth2AccessTokenResponseClient() {
         DefaultAuthorizationCodeTokenResponseClient client = new DefaultAuthorizationCodeTokenResponseClient();
         RestTemplate restTemplate = new RestTemplate(Arrays.asList(
@@ -95,7 +106,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     /**
-     * qq获取access_token返回的结果是类似get请求的字符串，所以必须自己定义解析响应结果
+     * qq获取access_token返回的结果是类似get请求参数的字符串，需要我们自己定义消息转换器来解析响应结果
      *
      * @see OAuth2AccessTokenResponseHttpMessageConverter#readInternal(java.lang.Class, org.springframework.http.HttpInputMessage)
      * @see OAuth2LoginAuthenticationProvider#authenticate(org.springframework.security.core.Authentication)
@@ -120,6 +131,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
             throw new UnsupportedOperationException();
         }
     }
+
 
 
 }
