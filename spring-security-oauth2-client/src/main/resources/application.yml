@@ -8,8 +8,7 @@ spring:
           qq:
             authorizationUri: https://graph.qq.com/oauth2.0/authorize
             tokenUri: https://graph.qq.com/oauth2.0/token
-            userInfoUri: https://graph.qq.com/oauth2.0/me
-            userInfoAuthenticationMethod: get
+            userInfoUri: https://graph.qq.com/user/get_user_info
             userNameAttribute: nickname
         registration:
           github:
@@ -19,10 +18,12 @@ spring:
           qq:
             clientId: clientId
             clientSecret: clientSecret
+            # 在本地测试时需要配置代理将自己在qq注册的redirectUri重定向为http://localhost/api/login/oauth2/code/qq
             redirectUri: https://www.zyc.red/api/login/oauth2/code/qq
             authorizationGrantType: authorization_code
+            # 授权码模式需要传递code、state、client_id、client_secret等参数，OAuth2AuthorizationCodeGrantRequestEntityConverter
+            # 会根据当前的认证方式传递不同的参数
             clientAuthenticationMethod: post
-
 logging:
   level:
     org.springframework.security: debug

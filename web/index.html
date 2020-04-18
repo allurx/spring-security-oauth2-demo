@@ -7,15 +7,19 @@
     <script type="text/javascript" src="./js/jquery-3.1.1.min.js"></script>
     <script type="text/javascript" src="./js/jquery.jsonview.js"></script>
     <script type="text/javascript">
+
+        // 获取当前已认证的OAuth2用户信息
         $.ajax({
             type: 'get',
-            url: "/api/user/userInfo"
+            url: "/api/oath2/user"
         }).done(function (response) {
             $("#user").JSONView(JSON.stringify(response), {collapsed: true});
         });
+
+        // 获取当前已认证的OAuth2-Client信息
         $.ajax({
             type: 'get',
-            url: "/api/user/client"
+            url: "/api/oath2/client"
         }).done(function (response) {
             $("#client").JSONView(JSON.stringify(response), {collapsed: true});
         })

@@ -27,17 +27,29 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * @author zyc
  */
-@RequestMapping("/api/user")
+@RequestMapping("/api/oath2")
 @RestController
-public class UserController {
+public class Oath2Controller {
 
-    @GetMapping("/userInfo")
+    /**
+     * 获取当前认证的OAuth2用户信息，默认是保存在{@link javax.servlet.http.HttpSession}中的
+     *
+     * @param user OAuth2用户信息
+     * @return OAuth2用户信息
+     */
+    @GetMapping("/user")
     public OAuth2User user(@AuthenticationPrincipal OAuth2User user) {
         return user;
     }
 
+    /**
+     * 获取当前认证的OAuth2客户端信息，默认是保存在{@link javax.servlet.http.HttpSession}中的
+     *
+     * @param oAuth2AuthorizedClient OAuth2客户端信息
+     * @return OAuth2客户端信息
+     */
     @GetMapping("/client")
-    public OAuth2AuthorizedClient user(@RegisteredOAuth2AuthorizedClient("github") OAuth2AuthorizedClient oAuth2AuthorizedClient) {
+    public OAuth2AuthorizedClient user(@RegisteredOAuth2AuthorizedClient OAuth2AuthorizedClient oAuth2AuthorizedClient) {
         return oAuth2AuthorizedClient;
     }
 }
