@@ -1,4 +1,4 @@
-# GitHub和QQ社交登录
+# 集成GitHub和QQ社交登录
 ## 准备
 1. [本机安装nginx](http://nginx.org/en/download.html)
 2. [创建一个GitHub OAuth App](https://github.com/settings/developers)
