@@ -49,9 +49,9 @@ public class CustomizedOauth2UserService extends DefaultOAuth2UserService {
     private static final String QQ = "qq";
     private static final String QQ_OPEN_ID_URL = "https://graph.qq.com/oauth2.0/me";
 
-    private RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @SneakyThrows
     @Override
