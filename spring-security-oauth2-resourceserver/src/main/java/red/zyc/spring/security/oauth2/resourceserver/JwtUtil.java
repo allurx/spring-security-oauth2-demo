@@ -24,13 +24,20 @@ import java.util.Date;
 @Slf4j
 public final class JwtUtil {
 
-    private static RSAPrivateKey privateKey;
-    private static RSAPublicKey publicKey;
+    /**
+     * 私钥
+     */
+    private static final RSAPrivateKey PRIVATE_KEY = RsaKeyConverters.pkcs8().convert(JwtUtil.class.getResourceAsStream("/key.private"));
 
-    static {
-        privateKey = RsaKeyConverters.pkcs8().convert(JwtUtil.class.getResourceAsStream("/key.private"));
-        publicKey = RsaKeyConverters.x509().convert(JwtUtil.class.getResourceAsStream("/key.public"));
-    }
+    /**
+     * 公钥
+     */
+    private static final RSAPublicKey PUBLIC_KEY = RsaKeyConverters.x509().convert(JwtUtil.class.getResourceAsStream("/key.public"));
+
+    /**
+     * rsa算法加解密时的填充方式
+     */
+    private static final String RSA_PADDING = "RSA/ECB/PKCS1Padding";
 
     private JwtUtil() {
     }
@@ -48,7 +55,7 @@ public final class JwtUtil {
                     .build();
             SignedJWT jwt = new SignedJWT(new JWSHeader(new JWSAlgorithm("RS512")), jwtClaimsSet);
             // 私钥签名，公钥验签
-            jwt.sign(new RSASSASigner(privateKey));
+            jwt.sign(new RSASSASigner(PRIVATE_KEY));
             return jwt.serialize();
         } catch (Exception e) {
             throw new IllegalStateException(e);
@@ -75,16 +82,15 @@ public final class JwtUtil {
     /**
      * 加密
      *
-     * @param s 明文
+     * @param plaintext 明文
      * @return 密文
      */
-    private static String encrypt(String s) {
+    private static String encrypt(String plaintext) {
         try {
-            log.info("plainText:{}", s);
-            Cipher cipher = Cipher.getInstance("rsa");
-            cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-            String encrypt = Base64.getEncoder().encodeToString(cipher.doFinal(s.getBytes()));
-            log.info("encrypt:{}", encrypt);
+            Cipher cipher = Cipher.getInstance(RSA_PADDING);
+            cipher.init(Cipher.ENCRYPT_MODE, PUBLIC_KEY);
+            String encrypt = Base64.getEncoder().encodeToString(cipher.doFinal(plaintext.getBytes()));
+            log.info("The plaintext {} is encrypted as: {}", plaintext, encrypt);
             return encrypt;
         } catch (Exception e) {
             throw new IllegalStateException(e);
@@ -94,15 +100,15 @@ public final class JwtUtil {
     /**
      * 解密
      *
-     * @param s 密文
+     * @param cipherText 密文
      * @return 明文
      */
-    private static String decrypt(String s) {
+    private static String decrypt(String cipherText) {
         try {
-            Cipher cipher = Cipher.getInstance("rsa");
-            cipher.init(Cipher.DECRYPT_MODE, privateKey);
-            String decrypt = new String(cipher.doFinal(Base64.getDecoder().decode(s)));
-            log.info("decrypt:{}", decrypt);
+            Cipher cipher = Cipher.getInstance(RSA_PADDING);
+            cipher.init(Cipher.DECRYPT_MODE, PRIVATE_KEY);
+            String decrypt = new String(cipher.doFinal(Base64.getDecoder().decode(cipherText)));
+            log.info("The ciphertext {} is decrypted as: {}", cipherText, decrypt);
             return decrypt;
         } catch (Exception e) {
             throw new IllegalStateException(e);
